@@ -1,5 +1,11 @@
 [
- {,
+  {
+    "title": "サンプル動画のタイトル",
+    "date": "2026-10-18",
+    "url": "https://www.youtube.com/watch?v=xxxxxxxxxxx",
+    "type": "動画"
+  },
+  {
     "title": "神様になって世界に光を取り戻す為に子どもを導くゲーム【OneShot】",
     "date": "2026-10-17",
     "url": "https://youtube.com/watch?v=faeorZUiCq8&si=iEsPFcylAig0Wv3a",
@@ -9,6 +15,6 @@
     "title": "謎解きまみれの広大な島に放り出されるゲーム、迷子になったら二度と出会えない【BigWalk】",
     "date": "2026-10-14",
     "url": "https://youtu.be/lI73nAqdGfA?si=Ydz70hMRnq233uRI",
-    "type": "ショート"
+    "type": "動画"
   }
 ]
