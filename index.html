@@ -182,4 +182,25 @@
       render();
     }
 
-    document.getElementById("search").add
+    document.getElementById("search").addEventListener("input", e => {
+      query = e.target.value;
+      shown = 50;
+      render();
+    });
+    document.getElementById("tabList").onclick = () => show("list");
+    document.getElementById("tabMonth").onclick = () => show("month");
+    document.getElementById("prev").onclick = () => { cur = new Date(cur.getFullYear(), cur.getMonth() - 1, 1); renderMonth(); };
+    document.getElementById("next").onclick = () => { cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1); renderMonth(); };
+
+    fetch("videos.json")
+      .then(res => res.json())
+      .then(data => {
+        videos = data.sort((a, b) => b.date.localeCompare(a.date));
+        render();
+      })
+      .catch(() => {
+        document.getElementById("listView").textContent = "videos.json を読み込めませんでした";
+      });
+  </script>
+</body>
+</html>
