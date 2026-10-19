@@ -5,44 +5,141 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>らっだぁ 動画投稿記録</title>
   <style>
-    body { font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 16px; background: #eef1f7; color: #333; }
+    body { font-family: sans-serif; max-width: 640px; margin: 0 auto; padding: 16px; background: #eef1f7; color: #333; }
     h1 { font-size: 20px; }
+    .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
+    .tab { flex: 1; padding: 8px; border: none; border-radius: 10px; background: #dde2ee; color: #555; font-size: 14px; }
+    .tab.active { background: #7a8bb5; color: #fff; }
+
+    /* リスト */
     .card { display: flex; gap: 12px; background: #fff; border-radius: 12px; padding: 10px; margin-bottom: 12px; align-items: center; }
     .thumb { width: 120px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; background: #dde2ee; flex-shrink: 0; }
     .info { min-width: 0; }
     .date { font-size: 12px; color: #888; margin-bottom: 4px; }
     .type { display: inline-block; font-size: 11px; background: #7a8bb5; color: #fff; border-radius: 8px; padding: 2px 8px; margin-left: 6px; }
     a { color: #333; font-weight: bold; text-decoration: none; font-size: 14px; line-height: 1.4; }
+
+    /* 月カレンダー */
+    .nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .nav button { width: 40px; height: 40px; border: none; border-radius: 50%; background: #fff; font-size: 16px; }
+    .nav .month { font-weight: bold; font-size: 18px; text-align: center; }
+    .nav .sub { display: block; font-size: 12px; color: #888; font-weight: normal; }
+    .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; background: #fff; padding: 6px; border-radius: 12px; }
+    .dow { text-align: center; font-size: 12px; color: #888; padding: 4px 0; }
+    .cell { position: relative; aspect-ratio: 1 / 1; background: #f4f6fb; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+    .cell img { width: 100%; flex: 1; min-height: 0; object-fit: cover; display: block; }
+    .cell .num { position: absolute; right: 3px; bottom: 1px; font-size: 14px; font-weight: bold; color: #aab3cc; }
+    .cell.has .num { color: #fff; text-shadow: 0 0 4px #000, 0 0 2px #000; }
+    .cell.has { cursor: pointer; }
+
+    /* 日付をタップしたときの一覧 */
+    #dayList { margin-top: 12px; }
+    #dayList h2 { font-size: 14px; margin: 0 0 8px; }
   </style>
 </head>
 <body>
   <h1>らっだぁ 動画投稿記録</h1>
-  <div id="list">読み込み中...</div>
+
+  <div class="tabs">
+    <button class="tab active" id="tabList">リスト</button>
+    <button class="tab" id="tabMonth">月</button>
+  </div>
+
+  <div id="listView"></div>
+
+  <div id="monthView" style="display:none">
+    <div class="nav">
+      <button id="prev">＜</button>
+      <div class="month" id="monthLabel"></div>
+      <button id="next">＞</button>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div id="dayList"></div>
+  </div>
 
   <script>
+    let videos = [];
+    let cur = new Date();
+    cur = new Date(cur.getFullYear(), cur.getMonth(), 1);
+
     function thumbUrl(url) {
       const m = url.match(/(?:v=|youtu\.be\/)([\w-]{11})/);
       return m ? `https://i.ytimg.com/vi/${m[1]}/mqdefault.jpg` : "";
     }
 
+    function cardHtml(v) {
+      return `
+        <div class="card">
+          <a href="${v.url}" target="_blank">
+            <img class="thumb" src="${thumbUrl(v.url)}" loading="lazy" alt="" onerror="this.style.visibility='hidden'">
+          </a>
+          <div class="info">
+            <div class="date">${v.date}<span class="type">${v.type}</span></div>
+            <a href="${v.url}" target="_blank">${v.title}</a>
+          </div>
+        </div>`;
+    }
+
+    function renderList() {
+      document.getElementById("listView").innerHTML = videos.map(cardHtml).join("");
+    }
+
+    function renderMonth() {
+      const y = cur.getFullYear(), m = cur.getMonth();
+      const prefix = `${y}-${String(m + 1).padStart(2, "0")}`;
+      const inMonth = videos.filter(v => v.date.startsWith(prefix));
+      document.getElementById("monthLabel").innerHTML =
+        `${y}年${m + 1}月<span class="sub">${inMonth.length}本</span>`;
+
+      const byDay = {};
+      inMonth.forEach(v => {
+        const d = Number(v.date.slice(8, 10));
+        (byDay[d] = byDay[d] || []).push(v);
+      });
+
+      // 月曜始まり
+      const first = (new Date(y, m, 1).getDay() + 6) % 7;
+      const days = new Date(y, m + 1, 0).getDate();
+      let html = ["月","火","水","木","金","土","日"].map(d => `<div class="dow">${d}</div>`).join("");
+      for (let i = 0; i < first; i++) html += "<div></div>";
+      for (let d = 1; d <= days; d++) {
+        const list = byDay[d] || [];
+        const imgs = list.slice(0, 4).map(v => `<img src="${thumbUrl(v.url)}" loading="lazy" alt="">`).join("");
+        html += `<div class="cell ${list.length ? "has" : ""}" data-day="${d}">${imgs}<span class="num">${d}</span></div>`;
+      }
+      document.getElementById("grid").innerHTML = html;
+      document.getElementById("dayList").innerHTML = "";
+
+      document.querySelectorAll(".cell.has").forEach(el => {
+        el.addEventListener("click", () => {
+          const d = Number(el.dataset.day);
+          document.getElementById("dayList").innerHTML =
+            `<h2>${m + 1}月${d}日</h2>` + byDay[d].map(cardHtml).join("");
+        });
+      });
+    }
+
+    function show(view) {
+      document.getElementById("listView").style.display = view === "list" ? "" : "none";
+      document.getElementById("monthView").style.display = view === "month" ? "" : "none";
+      document.getElementById("tabList").classList.toggle("active", view === "list");
+      document.getElementById("tabMonth").classList.toggle("active", view === "month");
+      if (view === "month") renderMonth();
+    }
+
+    document.getElementById("tabList").onclick = () => show("list");
+    document.getElementById("tabMonth").onclick = () => show("month");
+    document.getElementById("prev").onclick = () => { cur = new Date(cur.getFullYear(), cur.getMonth() - 1, 1); renderMonth(); };
+    document.getElementById("next").onclick = () => { cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1); renderMonth(); };
+
     fetch("videos.json")
       .then(res => res.json())
-      .then(videos => {
-        videos.sort((a, b) => b.date.localeCompare(a.date));
-        document.getElementById("list").innerHTML = videos.map(v => `
-          <div class="card">
-            <a href="${v.url}" target="_blank">
-              <img class="thumb" src="${thumbUrl(v.url)}" loading="lazy" alt="" onerror="this.style.visibility='hidden'">
-            </a>
-            <div class="info">
-              <div class="date">${v.date}<span class="type">${v.type}</span></div>
-              <a href="${v.url}" target="_blank">${v.title}</a>
-            </div>
-          </div>
-        `).join("");
+      .then(data => {
+        videos = data.sort((a, b) => b.date.localeCompare(a.date));
+        renderList();
       })
       .catch(() => {
-        document.getElementById("list").textContent = "videos.json を読み込めませんでした";
+        document.getElementById("listView").textContent = "videos.json を読み込めませんでした";
       });
   </script>
 </body>
