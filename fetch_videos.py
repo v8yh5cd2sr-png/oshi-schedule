@@ -97,14 +97,23 @@ for i in range(0, len(ids), 50):
             v["type"] = "ショート"
         else:
             v["type"] = "動画"
+# 3) ゲーム名を保存（表記ゆれ統一・除外つき。game_fixed の動画は触らない）
+try:
+    with open("game_aliases.json", encoding="utf-8") as f:
+        cfg = json.load(f)
+except FileNotFoundError:
+    cfg = {}
+alias = {}
+for main, names in cfg.get("aliases", {}).items():
+    for n in names:
+        alias[n.lower()] = main
+ignore = {n.lower() for n in cfg.get("ignore", [])}
 
-# 3) ゲーム名（【】の中）を保存。手で直した分（game_fixed）は上書きしない
 for v in videos:
-    if not v.get("game_fixed"):
-        v["game"] = game_name(v["title"])
+    if v.get("game_fixed"):
+        continue
+    g = game_name(v["title"])
+    if g.lower() in ignore:
+        g = ""
+    v["game"] = alias.get(g.lower(), g)
 
-videos.sort(key=lambda v: v.get("start") or v["date"], reverse=True)
-with open("videos.json", "w", encoding="utf-8") as f:
-    json.dump(videos, f, ensure_ascii=False, indent=2)
-lives = sum(1 for v in videos if v.get("start"))
-print(f"{added}本追加、全{len(videos)}本、うち配信時間つき{lives}本")
