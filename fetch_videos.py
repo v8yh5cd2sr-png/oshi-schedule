@@ -25,13 +25,17 @@ def seconds(iso):
 def game_name(title):
     for m in re.finditer(r"【(.+?)】", title):
         name = m.group(1).strip()
-        # 話数っぽいもの（01 / #3 / 第5話 / Part2 など）は飛ばす
         if re.fullmatch(r"(?:#|No\.?|Part|Ep\.?|第)?\s*[0-9０-９]+\s*(?:話|回|日目|章|夜|本目)?", name, re.I):
             continue
         if re.fullmatch(r"(?:前|中|後|完結|最終)(?:編|回|話)?|最終回|終", name):
             continue
         return name
     return ""
+
+def to_jst(s):
+    # YouTubeの時刻(UTC)を日本時間に直す。小数秒があっても動くようにする
+    t = datetime.strptime(s[:19], "%Y-%m-%dT%H:%M:%S") + timedelta(hours=9)
+    return t
 
 # 今ある記録を読み込む
 try:
@@ -54,7 +58,7 @@ for page in range(MAX_PAGES):
         vid = s["resourceId"]["videoId"]
         if vid in known or s["title"] in ("Private video", "Deleted video"):
             continue
-        jst = datetime.strptime(s["publishedAt"], "%Y-%m-%dT%H:%M:%SZ") + timedelta(hours=9)
+        jst = to_jst(s["publishedAt"])
         videos.append({
             "title": s["title"],
             "date": jst.strftime("%Y-%m-%d"),
@@ -67,7 +71,7 @@ for page in range(MAX_PAGES):
     if not page_token:
         break
 
-# 2) 種類を判定（50本ずつ詳細を取得）
+# 2) 種類と配信時間を判定（50本ずつ詳細を取得）
 by_id = {vid_id(v["url"]): v for v in videos if vid_id(v["url"])}
 ids = list(by_id)
 for i in range(0, len(ids), 50):
@@ -78,8 +82,17 @@ for i in range(0, len(ids), 50):
     })
     for item in data["items"]:
         v = by_id[item["id"]]
-        if "liveStreamingDetails" in item:
+        live = item.get("liveStreamingDetails")
+        if live:
             v["type"] = "配信"
+            if live.get("actualStartTime"):
+                st = to_jst(live["actualStartTime"])
+                v["start"] = st.strftime("%Y-%m-%dT%H:%M")
+                v["date"] = st.strftime("%Y-%m-%d")  # 配信は開始日を日付にする
+                if live.get("actualEndTime"):
+                    en = to_jst(live["actualEndTime"])
+                    v["end"] = en.strftime("%Y-%m-%dT%H:%M")
+                    v["hours"] = round((en - st).total_seconds() / 3600, 1)
         elif seconds(item["contentDetails"]["duration"]) <= SHORT_SECONDS or "#shorts" in v["title"].lower():
             v["type"] = "ショート"
         else:
@@ -90,7 +103,8 @@ for v in videos:
     if not v.get("game_fixed"):
         v["game"] = game_name(v["title"])
 
-videos.sort(key=lambda v: v["date"], reverse=True)
+videos.sort(key=lambda v: v.get("start") or v["date"], reverse=True)
 with open("videos.json", "w", encoding="utf-8") as f:
     json.dump(videos, f, ensure_ascii=False, indent=2)
-print(f"{added}本追加、全{len(videos)}本を判定しました")
+lives = sum(1 for v in videos if v.get("start"))
+print(f"{added}本追加、全{len(videos)}本、うち配信時間つき{lives}本")
