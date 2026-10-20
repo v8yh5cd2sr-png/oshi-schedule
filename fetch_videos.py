@@ -23,8 +23,15 @@ def seconds(iso):
     return d * 86400 + h * 3600 + mi * 60 + s
 
 def game_name(title):
-    m = re.search(r"【(.+?)】", title)
-    return m.group(1).strip() if m else ""
+    for m in re.finditer(r"【(.+?)】", title):
+        name = m.group(1).strip()
+        # 話数っぽいもの（01 / #3 / 第5話 / Part2 など）は飛ばす
+        if re.fullmatch(r"(?:#|No\.?|Part|Ep\.?|第)?\s*[0-9０-９]+\s*(?:話|回|日目|章|夜|本目)?", name, re.I):
+            continue
+        if re.fullmatch(r"(?:前|中|後|完結|最終)(?:編|回|話)?|最終回|終", name):
+            continue
+        return name
+    return ""
 
 # 今ある記録を読み込む
 try:
@@ -78,9 +85,9 @@ for i in range(0, len(ids), 50):
         else:
             v["type"] = "動画"
 
-# 3) ゲーム名（【】の中）を保存。手で直した分は上書きしない
+# 3) ゲーム名（【】の中）を保存。手で直した分（game_fixed）は上書きしない
 for v in videos:
-    if "game" not in v:
+    if not v.get("game_fixed"):
         v["game"] = game_name(v["title"])
 
 videos.sort(key=lambda v: v["date"], reverse=True)
