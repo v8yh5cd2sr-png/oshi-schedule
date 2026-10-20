@@ -4,6 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>🧣 らっだぁ 活動記録</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="らっだぁ">
+<meta name="theme-color" content="#3b82c4">
+<script>
+(function () {
+  var c = document.createElement("canvas");
+  c.width = c.height = 180;
+  var x = c.getContext("2d");
+  x.fillStyle = "#3b82c4"; x.fillRect(0, 0, 180, 180);   // 青い背景
+  x.fillStyle = "#d94452"; x.fillRect(0, 164, 180, 16);  // 赤の差し色
+  x.font = "110px sans-serif";
+  x.textAlign = "center"; x.textBaseline = "middle";
+  x.fillText("🧣", 90, 84);
+  var l = document.createElement("link");
+  l.rel = "apple-touch-icon";
+  l.href = c.toDataURL("image/png");
+  document.head.appendChild(l);
+})();
+</script>
   <style>
     /* ===== 色はここだけ変えればOK ===== */
     :root {
