@@ -33,11 +33,14 @@
     .more { display: block; width: 100%; padding: 12px; border: none; border-radius: 12px; background: #7a8bb5; color: #fff; font-size: 14px; margin-bottom: 24px; }
     .empty { text-align: center; color: #888; padding: 24px 0; }
 
-    /* 月カレンダー */
+    /* 月・週 共通のナビ */
     .nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
     .nav button { width: 40px; height: 40px; border: none; border-radius: 50%; background: #fff; font-size: 16px; }
     .nav .month { font-weight: bold; font-size: 18px; text-align: center; }
     .nav .sub { display: block; font-size: 12px; color: #888; font-weight: normal; }
+    .todaybtn { display: block; margin: 0 auto 8px; padding: 4px 16px; border: none; border-radius: 14px; background: #fff; color: #555; font-size: 12px; }
+
+    /* 月カレンダー */
     .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; background: #fff; padding: 6px; border-radius: 12px; }
     .dow { text-align: center; font-size: 12px; color: #888; padding: 4px 0; }
     .cell { position: relative; aspect-ratio: 1 / 1; background: #f4f6fb; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
@@ -47,6 +50,24 @@
     .cell.has { cursor: pointer; }
     #dayList { margin-top: 12px; }
     #dayList h2 { font-size: 14px; margin: 0 0 8px; }
+
+    /* 週表示 */
+    .stats { display: flex; gap: 8px; margin-bottom: 8px; }
+    .stat { background: #7a8bb5; color: #fff; border-radius: 10px; padding: 6px 12px; font-size: 13px; }
+    .stat.light { background: #a9b6d6; }
+    .week { background: #fff; border-radius: 12px; padding: 6px 4px 6px 4px; }
+    .wkrow { display: grid; grid-template-columns: 24px repeat(7, 1fr); gap: 2px; }
+    .wkhead { border-bottom: 2px solid #c9d1e6; margin-bottom: 4px; padding-bottom: 4px; }
+    .wkhead div { text-align: center; font-size: 11px; color: #888; line-height: 1.3; }
+    .wkhead .d { font-size: 16px; font-weight: bold; color: #444; }
+    .wkhead .h { color: #7a8bb5; }
+    .hours div { height: 36px; font-size: 10px; color: #99a; text-align: right; padding-right: 2px; box-sizing: border-box; }
+    .daycol { position: relative; height: 864px; border-left: 1px dashed #dde2ee;
+      background: repeating-linear-gradient(to bottom, transparent 0, transparent 35px, #e6eaf4 35px, #e6eaf4 36px); }
+    .ev { position: absolute; box-sizing: border-box; border-radius: 6px; overflow: hidden; padding: 2px 3px;
+      color: #fff; font-size: 10px; line-height: 1.25; text-decoration: none; font-weight: normal; }
+    .ev b { display: block; font-size: 10px; }
+    .ev span { display: block; word-break: break-all; }
   </style>
 </head>
 <body>
@@ -61,6 +82,7 @@
   <div class="tabs">
     <button class="tab active" id="tabList">リスト</button>
     <button class="tab" id="tabMonth">月</button>
+    <button class="tab" id="tabWeek">週</button>
   </div>
 
   <div id="listView"></div>
@@ -75,7 +97,19 @@
     <div id="dayList"></div>
   </div>
 
+  <div id="weekView" style="display:none">
+    <div class="nav">
+      <button id="wprev">＜</button>
+      <div class="month" id="weekLabel"></div>
+      <button id="wnext">＞</button>
+    </div>
+    <button class="todaybtn" id="wtoday">今週</button>
+    <div class="stats" id="weekStats"></div>
+    <div class="week" id="weekBox"></div>
+  </div>
+
   <script>
+    const HOUR_H = 36;
     let videos = [];
     let query = "";
     let typeFilter = "";
@@ -84,6 +118,12 @@
     let shown = 50;
     let cur = new Date();
     cur = new Date(cur.getFullYear(), cur.getMonth(), 1);
+
+    function mondayOf(d) {
+      const off = (d.getDay() + 6) % 7;
+      return new Date(d.getFullYear(), d.getMonth(), d.getDate() - off);
+    }
+    let weekStart = mondayOf(new Date());
 
     function esc(s) {
       return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -173,6 +213,82 @@
       });
     }
 
+    // ---------- 週表示 ----------
+    function parseDT(s) {
+      return new Date(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10), +s.slice(11, 13), +s.slice(14, 16));
+    }
+    function fmtH(h) {
+      return (Math.round(h * 10) / 10) + "h";
+    }
+    function pad(n) { return String(n).padStart(2, "0"); }
+
+    function renderWeek() {
+      const lives = filtered().filter(v => v.start && v.end);
+      const names = ["月","火","水","木","金","土","日"];
+      const ws = weekStart;
+      const we = new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() + 6);
+      document.getElementById("weekLabel").innerHTML =
+        `${ws.getMonth() + 1}/${ws.getDate()} - ${we.getMonth() + 1}/${we.getDate()}<span class="sub">${ws.getFullYear()}年</span>`;
+
+      const liveIds = new Set();
+      let totalHours = 0;
+      let headHtml = '<div></div>';
+      let colsHtml = '<div class="hours">' + Array.from({ length: 24 }, (_, h) => `<div>${h}</div>`).join("") + "</div>";
+
+      for (let i = 0; i < 7; i++) {
+        const dayStart = new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() + i);
+        const dayEnd = new Date(ws.getFullYear(), ws.getMonth(), ws.getDate() + i + 1);
+        const segs = [];
+        let dayHours = 0;
+
+        lives.forEach(v => {
+          const s = parseDT(v.start), e = parseDT(v.end);
+          if (e <= dayStart || s >= dayEnd) return;
+          const ss = s > dayStart ? s : dayStart;
+          const ee = e < dayEnd ? e : dayEnd;
+          const startMin = (ss - dayStart) / 60000;
+          const durMin = (ee - ss) / 60000;
+          dayHours += durMin / 60;
+          liveIds.add(v.url);
+          segs.push({ v, startMin, durMin, endMin: startMin + durMin });
+        });
+        totalHours += dayHours;
+
+        // 重なった配信は横に並べる
+        segs.sort((a, b) => a.startMin - b.startMin);
+        const laneEnds = [];
+        segs.forEach(sg => {
+          let lane = laneEnds.findIndex(end => end <= sg.startMin);
+          if (lane === -1) { lane = laneEnds.length; laneEnds.push(0); }
+          laneEnds[lane] = Math.max(sg.endMin, sg.startMin + 30);
+          sg.lane = lane;
+        });
+        const lanes = Math.max(1, laneEnds.length);
+
+        const evHtml = segs.map(sg => {
+          const top = sg.startMin / 60 * HOUR_H;
+          const height = Math.max(sg.durMin / 60 * HOUR_H, 18);
+          const w = 100 / lanes;
+          const hh = Math.floor(sg.startMin / 60), mm = Math.round(sg.startMin % 60);
+          const label = sg.v.game || sg.v.title;
+          const bg = `linear-gradient(rgba(70,82,125,.72),rgba(70,82,125,.72)),url('${thumbUrl(sg.v.url)}') center/cover`;
+          return `<a class="ev" href="${esc(sg.v.url)}" target="_blank"
+            style="top:${top}px;height:${height}px;left:${sg.lane * w}%;width:calc(${w}% - 1px);background:${bg}">
+            <b>${hh}:${pad(mm)}</b><span>${esc(label)}</span></a>`;
+        }).join("");
+
+        const isSun = i === 6;
+        headHtml += `<div><div>${names[i]}</div><div class="d"${isSun ? ' style="color:#d66"' : ""}>${dayStart.getDate()}</div><div class="h">${dayHours ? fmtH(dayHours) : "&nbsp;"}</div></div>`;
+        colsHtml += `<div class="daycol">${evHtml}</div>`;
+      }
+
+      document.getElementById("weekStats").innerHTML =
+        `<span class="stat">${liveIds.size} 回</span><span class="stat light">${fmtH(totalHours)}</span>`;
+      document.getElementById("weekBox").innerHTML =
+        `<div class="wkrow wkhead">${headHtml}</div><div class="wkrow">${colsHtml}</div>`;
+    }
+
+    // ---------- 共通 ----------
     function updateCount() {
       const n = filtered().length;
       const active = query.trim() || typeFilter || gameFilter;
@@ -203,15 +319,19 @@
 
     function render() {
       updateCount();
-      if (view === "list") renderList(); else renderMonth();
+      if (view === "list") renderList();
+      else if (view === "month") renderMonth();
+      else renderWeek();
     }
 
     function show(v) {
       view = v;
       document.getElementById("listView").style.display = v === "list" ? "" : "none";
       document.getElementById("monthView").style.display = v === "month" ? "" : "none";
+      document.getElementById("weekView").style.display = v === "week" ? "" : "none";
       document.getElementById("tabList").classList.toggle("active", v === "list");
       document.getElementById("tabMonth").classList.toggle("active", v === "month");
+      document.getElementById("tabWeek").classList.toggle("active", v === "week");
       render();
     }
 
@@ -222,13 +342,17 @@
     });
     document.getElementById("tabList").onclick = () => show("list");
     document.getElementById("tabMonth").onclick = () => show("month");
+    document.getElementById("tabWeek").onclick = () => show("week");
     document.getElementById("prev").onclick = () => { cur = new Date(cur.getFullYear(), cur.getMonth() - 1, 1); renderMonth(); };
     document.getElementById("next").onclick = () => { cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1); renderMonth(); };
+    document.getElementById("wprev").onclick = () => { weekStart = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() - 7); renderWeek(); };
+    document.getElementById("wnext").onclick = () => { weekStart = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 7); renderWeek(); };
+    document.getElementById("wtoday").onclick = () => { weekStart = mondayOf(new Date()); renderWeek(); };
 
     fetch("videos.json")
       .then(res => res.json())
       .then(data => {
-        videos = data.sort((a, b) => b.date.localeCompare(a.date));
+        videos = data.sort((a, b) => (b.start || b.date).localeCompare(a.start || a.date));
         renderChips();
         buildGameSelect();
         render();
