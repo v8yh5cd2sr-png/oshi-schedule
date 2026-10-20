@@ -3,59 +3,73 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>らっだぁ 動画投稿記録</title>
+  <title>🧣 らっだぁ 活動記録</title>
   <style>
-    body { font-family: sans-serif; max-width: 640px; margin: 0 auto; padding: 16px; background: #eef1f7; color: #333; }
-    h1 { font-size: 20px; }
+    /* ===== 色はここだけ変えればOK ===== */
+    :root {
+      --bg: #e9f3fb;          /* 背景（薄い水色） */
+      --card: #ffffff;        /* カード */
+      --main: #3b82c4;        /* メインの青 */
+      --main-light: #8fc3ea;  /* 水色 */
+      --soft: #d6e8f6;        /* 淡い水色（ボタンの下地） */
+      --line: #cfe1f0;        /* 線 */
+      --text: #243447;        /* 文字 */
+      --sub: #6b8197;         /* 薄い文字 */
+      --red: #d94452;         /* 差し色（マフラーの赤） */
+      --green: #4fa3a5;       /* 配信 */
+    }
+    body { font-family: sans-serif; max-width: 640px; margin: 0 auto; padding: 16px; background: var(--bg); color: var(--text); }
+    h1 { font-size: 20px; border-bottom: 3px solid var(--red); display: inline-block; padding-bottom: 2px; margin-bottom: 14px; }
     .tabs { display: flex; gap: 6px; margin-bottom: 12px; }
-    .tab { flex: 1; padding: 8px 0; border: none; border-radius: 10px; background: #dde2ee; color: #555; font-size: 14px; }
-    .tab.active { background: #7a8bb5; color: #fff; }
+    .tab { flex: 1; padding: 8px 0; border: none; border-radius: 10px; background: var(--soft); color: var(--sub); font-size: 14px; }
+    .tab.active { background: var(--main); color: #fff; box-shadow: 0 3px 0 var(--red); }
 
     /* 締切 */
-    .deadlines { background: #fbf4dc; border-radius: 12px; padding: 8px 10px; margin-bottom: 12px; }
+    .deadlines { background: #fff; border: 2px solid var(--soft); border-left: 5px solid var(--red); border-radius: 12px; padding: 8px 10px; margin-bottom: 12px; }
     .dl { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
-    .dl + .dl { border-top: 1px dashed #e3d6a8; }
-    .dl .left { background: #7a8bb5; color: #fff; border-radius: 8px; padding: 4px 10px; font-size: 13px; font-weight: bold; white-space: nowrap; }
-    .dl .left.soon { background: #d9798b; }
-    .dl .t { font-size: 14px; font-weight: bold; color: #444; }
-    .dl .s { font-size: 11px; color: #998; }
+    .dl + .dl { border-top: 1px dashed var(--line); }
+    .dl .left { background: var(--main); color: #fff; border-radius: 8px; padding: 4px 10px; font-size: 13px; font-weight: bold; white-space: nowrap; }
+    .dl .left.soon { background: var(--red); }
+    .dl .t { font-size: 14px; font-weight: bold; color: var(--text); }
+    .dl .s { font-size: 11px; color: var(--sub); }
 
     /* 検索・絞り込み */
-    .search { width: 100%; box-sizing: border-box; padding: 10px 14px; border: 2px solid #dde2ee; border-radius: 12px; font-size: 16px; background: #fff; margin-bottom: 8px; }
-    .search:focus { outline: none; border-color: #7a8bb5; }
+    .search { width: 100%; box-sizing: border-box; padding: 10px 14px; border: 2px solid var(--soft); border-radius: 12px; font-size: 16px; background: #fff; color: var(--text); margin-bottom: 8px; }
+    .search:focus { outline: none; border-color: var(--main); }
     .chips { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
-    .chip { padding: 6px 14px; border: none; border-radius: 16px; background: #fff; color: #555; font-size: 13px; }
-    .chip.active { background: #7a8bb5; color: #fff; }
-    .gamesel { width: 100%; box-sizing: border-box; padding: 8px 12px; border: 2px solid #dde2ee; border-radius: 12px; font-size: 14px; background: #fff; margin-bottom: 8px; }
-    .count { font-size: 12px; color: #888; margin: 0 0 10px 4px; }
+    .chip { padding: 6px 14px; border: none; border-radius: 16px; background: #fff; color: var(--sub); font-size: 13px; }
+    .chip.active { background: var(--main); color: #fff; }
+    .gamesel { width: 100%; box-sizing: border-box; padding: 8px 12px; border: 2px solid var(--soft); border-radius: 12px; font-size: 14px; background: #fff; color: var(--text); margin-bottom: 8px; }
+    .count { font-size: 12px; color: var(--sub); margin: 0 0 10px 4px; }
 
     /* リスト */
-    .card { display: flex; gap: 12px; background: #fff; border-radius: 12px; padding: 10px; margin-bottom: 12px; align-items: center; }
-    .thumb { width: 120px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; background: #dde2ee; flex-shrink: 0; }
+    .card { display: flex; gap: 12px; background: var(--card); border-radius: 12px; padding: 10px; margin-bottom: 12px; align-items: center; }
+    .thumb { width: 120px; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; background: var(--soft); flex-shrink: 0; }
     .info { min-width: 0; }
-    .date { font-size: 12px; color: #888; margin-bottom: 4px; }
-    .type { display: inline-block; font-size: 11px; background: #7a8bb5; color: #fff; border-radius: 8px; padding: 2px 8px; margin-left: 6px; }
-    .type.ショート { background: #e08a9b; }
-    .type.配信 { background: #6aa88f; }
-    .game { display: inline-block; font-size: 11px; background: #eef1f7; color: #667; border-radius: 8px; padding: 2px 8px; margin-left: 4px; }
-    a { color: #333; font-weight: bold; text-decoration: none; font-size: 14px; line-height: 1.4; }
-    .more { display: block; width: 100%; padding: 12px; border: none; border-radius: 12px; background: #7a8bb5; color: #fff; font-size: 14px; margin-bottom: 24px; }
-    .empty { text-align: center; color: #888; padding: 24px 0; }
+    .date { font-size: 12px; color: var(--sub); margin-bottom: 4px; }
+    .type { display: inline-block; font-size: 11px; background: var(--main); color: #fff; border-radius: 8px; padding: 2px 8px; margin-left: 6px; }
+    .type.ショート { background: var(--red); }
+    .type.配信 { background: var(--green); }
+    .game { display: inline-block; font-size: 11px; background: var(--soft); color: var(--main); border-radius: 8px; padding: 2px 8px; margin-left: 4px; }
+    a { color: var(--text); font-weight: bold; text-decoration: none; font-size: 14px; line-height: 1.4; }
+    .more { display: block; width: 100%; padding: 12px; border: none; border-radius: 12px; background: var(--main); color: #fff; font-size: 14px; margin-bottom: 24px; }
+    .empty { text-align: center; color: var(--sub); padding: 24px 0; }
 
     /* 月・週 共通のナビ */
     .nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
-    .nav button { width: 40px; height: 40px; border: none; border-radius: 50%; background: #fff; font-size: 16px; }
+    .nav button { width: 40px; height: 40px; border: none; border-radius: 50%; background: #fff; color: var(--main); font-size: 16px; }
     .nav .month { font-weight: bold; font-size: 18px; text-align: center; }
-    .nav .sub { display: block; font-size: 12px; color: #888; font-weight: normal; }
-    .todaybtn { display: block; margin: 0 auto 8px; padding: 4px 16px; border: none; border-radius: 14px; background: #fff; color: #555; font-size: 12px; }
+    .nav .sub { display: block; font-size: 12px; color: var(--sub); font-weight: normal; }
+    .todaybtn { display: block; margin: 0 auto 8px; padding: 4px 16px; border: none; border-radius: 14px; background: #fff; color: var(--main); font-size: 12px; }
     #monthLabel { cursor: pointer; }
 
     /* 月カレンダー */
     .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; background: #fff; padding: 6px; border-radius: 12px; }
-    .dow { text-align: center; font-size: 12px; color: #888; padding: 4px 0; }
-    .cell { position: relative; aspect-ratio: 1 / 1; background: #f4f6fb; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
+    .dow { text-align: center; font-size: 12px; color: var(--sub); padding: 4px 0; }
+    .dow.sun { color: var(--red); }
+    .cell { position: relative; aspect-ratio: 1 / 1; background: #f1f7fc; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; }
     .cell img { width: 100%; flex: 1; min-height: 0; object-fit: cover; display: block; }
-    .cell .num { position: absolute; right: 3px; bottom: 1px; font-size: 14px; font-weight: bold; color: #aab3cc; }
+    .cell .num { position: absolute; right: 3px; bottom: 1px; font-size: 14px; font-weight: bold; color: #a9c1d6; }
     .cell.has .num { color: #fff; text-shadow: 0 0 4px #000, 0 0 2px #000; }
     .cell.has { cursor: pointer; }
     #dayList { margin-top: 12px; }
@@ -63,29 +77,29 @@
 
     /* 合計・月ピッカー */
     .stats { display: flex; gap: 8px; margin-bottom: 8px; }
-    .stat { background: #7a8bb5; color: #fff; border-radius: 10px; padding: 6px 12px; font-size: 13px; }
-    .stat.light { background: #a9b6d6; }
+    .stat { background: var(--main); color: #fff; border-radius: 10px; padding: 6px 12px; font-size: 13px; }
+    .stat.light { background: var(--main-light); }
     .gamechips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-    .gamechips span { background: #fff; color: #556; border-radius: 14px; padding: 4px 10px; font-size: 12px; }
+    .gamechips span { background: #fff; color: var(--main); border-radius: 14px; padding: 4px 10px; font-size: 12px; }
     .picker { background: #fff; border-radius: 12px; padding: 10px; margin-bottom: 10px; }
     .pickhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-weight: bold; }
-    .pickhead button { width: 34px; height: 34px; border: none; border-radius: 50%; background: #eef1f7; font-size: 14px; }
+    .pickhead button { width: 34px; height: 34px; border: none; border-radius: 50%; background: var(--soft); color: var(--main); font-size: 14px; }
     .pickgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-    .pm { border: none; border-radius: 10px; background: #eef1f7; color: #445; padding: 8px 2px; font-size: 13px; line-height: 1.4; }
-    .pm small { display: block; font-size: 11px; color: #778; }
-    .pm.cur { background: #7a8bb5; color: #fff; }
+    .pm { border: none; border-radius: 10px; background: var(--soft); color: var(--text); padding: 8px 2px; font-size: 13px; line-height: 1.4; }
+    .pm small { display: block; font-size: 11px; color: var(--sub); }
+    .pm.cur { background: var(--main); color: #fff; }
     .pm.cur small { color: #fff; }
 
     /* 週表示 */
     .week { background: #fff; border-radius: 12px; padding: 6px 4px 6px 4px; }
     .wkrow { display: grid; grid-template-columns: 24px repeat(7, 1fr); gap: 2px; }
-    .wkhead { border-bottom: 2px solid #c9d1e6; margin-bottom: 4px; padding-bottom: 4px; }
-    .wkhead div { text-align: center; font-size: 11px; color: #888; line-height: 1.3; }
-    .wkhead .d { font-size: 16px; font-weight: bold; color: #444; }
-    .wkhead .h { color: #7a8bb5; }
-    .hours div { height: 36px; font-size: 10px; color: #99a; text-align: right; padding-right: 2px; box-sizing: border-box; }
-    .daycol { position: relative; height: 864px; border-left: 1px dashed #dde2ee;
-      background: repeating-linear-gradient(to bottom, transparent 0, transparent 35px, #e6eaf4 35px, #e6eaf4 36px); }
+    .wkhead { border-bottom: 2px solid var(--line); margin-bottom: 4px; padding-bottom: 4px; }
+    .wkhead div { text-align: center; font-size: 11px; color: var(--sub); line-height: 1.3; }
+    .wkhead .d { font-size: 16px; font-weight: bold; color: var(--text); }
+    .wkhead .h { color: var(--main); }
+    .hours div { height: 36px; font-size: 10px; color: var(--sub); text-align: right; padding-right: 2px; box-sizing: border-box; }
+    .daycol { position: relative; height: 864px; border-left: 1px dashed var(--line);
+      background: repeating-linear-gradient(to bottom, transparent 0, transparent 35px, #e3eef8 35px, #e3eef8 36px); }
     .ev { position: absolute; box-sizing: border-box; border-radius: 6px; overflow: hidden; padding: 2px 3px;
       color: #fff; font-size: 10px; line-height: 1.25; text-decoration: none; font-weight: normal; }
     .ev b { display: block; font-size: 10px; }
@@ -94,14 +108,14 @@
     /* ゲーム別 */
     .sortrow { display: flex; gap: 6px; margin-bottom: 10px; }
     .gcard { display: block; width: 100%; text-align: left; border: none; background: #fff; border-radius: 12px; padding: 10px 14px; margin-bottom: 10px; }
-    .gcard .gn { font-size: 15px; font-weight: bold; color: #333; margin-bottom: 4px; }
-    .gcard .gs { font-size: 12px; color: #778; }
-    .gcard .bar { height: 6px; background: #eef1f7; border-radius: 3px; margin-top: 8px; overflow: hidden; }
-    .gcard .bar i { display: block; height: 100%; background: #6aa88f; border-radius: 3px; }
+    .gcard .gn { font-size: 15px; font-weight: bold; color: var(--text); margin-bottom: 4px; }
+    .gcard .gs { font-size: 12px; color: var(--sub); }
+    .gcard .bar { height: 6px; background: var(--soft); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+    .gcard .bar i { display: block; height: 100%; background: var(--red); border-radius: 3px; }
   </style>
 </head>
 <body>
-  <h1>らっだぁ 動画投稿記録</h1>
+  <h1>🧣 らっだぁ 活動記録</h1>
 
   <div class="deadlines" id="deadlines" style="display:none"></div>
 
@@ -175,7 +189,6 @@
     function fmtH(h) { return (Math.round(h * 10) / 10) + "h"; }
     function pad(n) { return String(n).padStart(2, "0"); }
 
-    // ignoreGame=true のときはゲーム絞り込みを無視（ゲーム別ページ用）
     function filtered(ignoreGame) {
       const words = norm(query).split(/\s+/).filter(Boolean);
       return videos.filter(v => {
@@ -312,7 +325,7 @@
 
       const first = (new Date(y, m, 1).getDay() + 6) % 7;
       const days = new Date(y, m + 1, 0).getDate();
-      let html = ["月","火","水","木","金","土","日"].map(d => `<div class="dow">${d}</div>`).join("");
+      let html = ["月","火","水","木","金","土","日"].map((d, i) => `<div class="dow ${i === 6 ? "sun" : ""}">${d}</div>`).join("");
       for (let i = 0; i < first; i++) html += "<div></div>";
       for (let d = 1; d <= days; d++) {
         const items = byDay[d] || [];
@@ -380,14 +393,14 @@
           const w = 100 / lanes;
           const hh = Math.floor(sg.startMin / 60), mm = Math.round(sg.startMin % 60);
           const label = sg.v.game || sg.v.title;
-          const bg = `linear-gradient(rgba(70,82,125,.72),rgba(70,82,125,.72)),url('${thumbUrl(sg.v.url)}') center/cover`;
+          const bg = `linear-gradient(rgba(40,90,150,.72),rgba(40,90,150,.72)),url('${thumbUrl(sg.v.url)}') center/cover`;
           return `<a class="ev" href="${esc(sg.v.url)}" target="_blank"
             style="top:${top}px;height:${height}px;left:${sg.lane * w}%;width:calc(${w}% - 1px);background:${bg}">
             <b>${hh}:${pad(mm)}</b><span>${esc(label)}</span></a>`;
         }).join("");
 
         const isSun = i === 6;
-        headHtml += `<div><div>${names[i]}</div><div class="d"${isSun ? ' style="color:#d66"' : ""}>${dayStart.getDate()}</div><div class="h">${dayHours ? fmtH(dayHours) : "&nbsp;"}</div></div>`;
+        headHtml += `<div><div>${names[i]}</div><div class="d"${isSun ? ' style="color:var(--red)"' : ""}>${dayStart.getDate()}</div><div class="h">${dayHours ? fmtH(dayHours) : "&nbsp;"}</div></div>`;
         colsHtml += `<div class="daycol">${evHtml}</div>`;
       }
 
@@ -508,7 +521,6 @@
     document.getElementById("wnext").onclick = () => { weekStart = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 7); renderWeek(); };
     document.getElementById("wtoday").onclick = () => { weekStart = mondayOf(new Date()); renderWeek(); };
 
-    // 締切（ファイルがなくても動く）
     fetch("deadlines.json")
       .then(res => res.ok ? res.json() : [])
       .then(renderDeadlines)
