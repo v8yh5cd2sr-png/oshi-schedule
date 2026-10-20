@@ -39,6 +39,7 @@
     .nav .month { font-weight: bold; font-size: 18px; text-align: center; }
     .nav .sub { display: block; font-size: 12px; color: #888; font-weight: normal; }
     .todaybtn { display: block; margin: 0 auto 8px; padding: 4px 16px; border: none; border-radius: 14px; background: #fff; color: #555; font-size: 12px; }
+    #monthLabel { cursor: pointer; }
 
     /* 月カレンダー */
     .grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; background: #fff; padding: 6px; border-radius: 12px; }
@@ -51,10 +52,22 @@
     #dayList { margin-top: 12px; }
     #dayList h2 { font-size: 14px; margin: 0 0 8px; }
 
-    /* 週表示 */
+    /* 月の合計・月ピッカー */
     .stats { display: flex; gap: 8px; margin-bottom: 8px; }
     .stat { background: #7a8bb5; color: #fff; border-radius: 10px; padding: 6px 12px; font-size: 13px; }
     .stat.light { background: #a9b6d6; }
+    .gamechips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+    .gamechips span { background: #fff; color: #556; border-radius: 14px; padding: 4px 10px; font-size: 12px; }
+    .picker { background: #fff; border-radius: 12px; padding: 10px; margin-bottom: 10px; }
+    .pickhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-weight: bold; }
+    .pickhead button { width: 34px; height: 34px; border: none; border-radius: 50%; background: #eef1f7; font-size: 14px; }
+    .pickgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    .pm { border: none; border-radius: 10px; background: #eef1f7; color: #445; padding: 8px 2px; font-size: 13px; line-height: 1.4; }
+    .pm small { display: block; font-size: 11px; color: #778; }
+    .pm.cur { background: #7a8bb5; color: #fff; }
+    .pm.cur small { color: #fff; }
+
+    /* 週表示 */
     .week { background: #fff; border-radius: 12px; padding: 6px 4px 6px 4px; }
     .wkrow { display: grid; grid-template-columns: 24px repeat(7, 1fr); gap: 2px; }
     .wkhead { border-bottom: 2px solid #c9d1e6; margin-bottom: 4px; padding-bottom: 4px; }
@@ -93,6 +106,9 @@
       <div class="month" id="monthLabel"></div>
       <button id="next">＞</button>
     </div>
+    <div class="picker" id="picker" style="display:none"></div>
+    <div class="stats" id="monthStats"></div>
+    <div class="gamechips" id="monthGames"></div>
     <div class="grid" id="grid"></div>
     <div id="dayList"></div>
   </div>
@@ -118,6 +134,7 @@
     let shown = 50;
     let cur = new Date();
     cur = new Date(cur.getFullYear(), cur.getMonth(), 1);
+    let pickerYear = cur.getFullYear();
 
     function mondayOf(d) {
       const off = (d.getDay() + 6) % 7;
@@ -131,6 +148,10 @@
     function norm(s) {
       return s.normalize("NFKC").toLowerCase();
     }
+    function fmtH(h) {
+      return (Math.round(h * 10) / 10) + "h";
+    }
+    function pad(n) { return String(n).padStart(2, "0"); }
 
     function filtered() {
       const words = norm(query).split(/\s+/).filter(Boolean);
@@ -150,13 +171,14 @@
 
     function cardHtml(v) {
       const game = v.game ? `<span class="game">${esc(v.game)}</span>` : "";
+      const hrs = v.hours ? ` ・ ${fmtH(v.hours)}` : "";
       return `
         <div class="card">
           <a href="${esc(v.url)}" target="_blank">
             <img class="thumb" src="${thumbUrl(v.url)}" loading="lazy" alt="" onerror="this.style.visibility='hidden'">
           </a>
           <div class="info">
-            <div class="date">${esc(v.date)}<span class="type ${esc(v.type)}">${esc(v.type)}</span>${game}</div>
+            <div class="date">${esc(v.date)}${hrs}<span class="type ${esc(v.type)}">${esc(v.type)}</span>${game}</div>
             <a href="${esc(v.url)}" target="_blank">${esc(v.title)}</a>
           </div>
         </div>`;
@@ -178,13 +200,61 @@
       if (more) more.onclick = () => { shown += 50; renderList(); };
     }
 
+    // ---------- 月表示 ----------
+    function renderPicker() {
+      const list = filtered();
+      const byMonth = {};
+      list.forEach(v => {
+        if (!v.hours) return;
+        const k = v.date.slice(0, 7);
+        byMonth[k] = (byMonth[k] || 0) + v.hours;
+      });
+      let html = `<div class="pickhead"><button id="pyprev">＜</button><span>${pickerYear}年</span><button id="pynext">＞</button></div><div class="pickgrid">`;
+      for (let m = 1; m <= 12; m++) {
+        const h = byMonth[`${pickerYear}-${pad(m)}`];
+        const isCur = pickerYear === cur.getFullYear() && m === cur.getMonth() + 1;
+        html += `<button class="pm ${isCur ? "cur" : ""}" data-m="${m}">${m}月<small>${h ? fmtH(h) : "–"}</small></button>`;
+      }
+      html += "</div>";
+      const box = document.getElementById("picker");
+      box.innerHTML = html;
+      document.getElementById("pyprev").onclick = () => { pickerYear--; renderPicker(); };
+      document.getElementById("pynext").onclick = () => { pickerYear++; renderPicker(); };
+      box.querySelectorAll(".pm").forEach(b => {
+        b.onclick = () => {
+          cur = new Date(pickerYear, Number(b.dataset.m) - 1, 1);
+          box.style.display = "none";
+          renderMonth();
+        };
+      });
+    }
+
     function renderMonth() {
       const list = filtered();
       const y = cur.getFullYear(), m = cur.getMonth();
-      const prefix = `${y}-${String(m + 1).padStart(2, "0")}`;
+      const prefix = `${y}-${pad(m + 1)}`;
       const inMonth = list.filter(v => v.date.startsWith(prefix));
       document.getElementById("monthLabel").innerHTML =
-        `${y}年${m + 1}月<span class="sub">${inMonth.length}本</span>`;
+        `${y}年${m + 1}月 ▾<span class="sub">${inMonth.length}本</span>`;
+
+      // 月の合計配信時間・ゲーム別
+      const lives = inMonth.filter(v => v.hours);
+      const total = lives.reduce((s, v) => s + v.hours, 0);
+      const byGame = {};
+      lives.forEach(v => {
+        const g = v.game || "その他";
+        byGame[g] = (byGame[g] || 0) + v.hours;
+      });
+      const top = Object.entries(byGame).sort((a, b) => b[1] - a[1]).slice(0, 6);
+      document.getElementById("monthStats").innerHTML =
+        `<span class="stat">${lives.length} 回</span><span class="stat light">${fmtH(total)}</span>`;
+      document.getElementById("monthGames").innerHTML =
+        top.map(([g, h]) => `<span>${esc(g)} ${fmtH(h)}</span>`).join("");
+
+      if (document.getElementById("picker").style.display !== "none") {
+        pickerYear = y;
+        renderPicker();
+      }
 
       const byDay = {};
       inMonth.forEach(v => {
@@ -217,10 +287,6 @@
     function parseDT(s) {
       return new Date(+s.slice(0, 4), +s.slice(5, 7) - 1, +s.slice(8, 10), +s.slice(11, 13), +s.slice(14, 16));
     }
-    function fmtH(h) {
-      return (Math.round(h * 10) / 10) + "h";
-    }
-    function pad(n) { return String(n).padStart(2, "0"); }
 
     function renderWeek() {
       const lives = filtered().filter(v => v.start && v.end);
@@ -254,7 +320,6 @@
         });
         totalHours += dayHours;
 
-        // 重なった配信は横に並べる
         segs.sort((a, b) => a.startMin - b.startMin);
         const laneEnds = [];
         segs.forEach(sg => {
@@ -345,6 +410,11 @@
     document.getElementById("tabWeek").onclick = () => show("week");
     document.getElementById("prev").onclick = () => { cur = new Date(cur.getFullYear(), cur.getMonth() - 1, 1); renderMonth(); };
     document.getElementById("next").onclick = () => { cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1); renderMonth(); };
+    document.getElementById("monthLabel").onclick = () => {
+      const p = document.getElementById("picker");
+      if (p.style.display === "none") { pickerYear = cur.getFullYear(); renderPicker(); p.style.display = ""; }
+      else p.style.display = "none";
+    };
     document.getElementById("wprev").onclick = () => { weekStart = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() - 7); renderWeek(); };
     document.getElementById("wnext").onclick = () => { weekStart = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() + 7); renderWeek(); };
     document.getElementById("wtoday").onclick = () => { weekStart = mondayOf(new Date()); renderWeek(); };
