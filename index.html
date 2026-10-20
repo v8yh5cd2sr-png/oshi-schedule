@@ -11,9 +11,13 @@
     .tab { flex: 1; padding: 8px; border: none; border-radius: 10px; background: #dde2ee; color: #555; font-size: 14px; }
     .tab.active { background: #7a8bb5; color: #fff; }
 
-    /* 検索 */
+    /* 検索・絞り込み */
     .search { width: 100%; box-sizing: border-box; padding: 10px 14px; border: 2px solid #dde2ee; border-radius: 12px; font-size: 16px; background: #fff; margin-bottom: 8px; }
     .search:focus { outline: none; border-color: #7a8bb5; }
+    .chips { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+    .chip { padding: 6px 14px; border: none; border-radius: 16px; background: #fff; color: #555; font-size: 13px; }
+    .chip.active { background: #7a8bb5; color: #fff; }
+    .gamesel { width: 100%; box-sizing: border-box; padding: 8px 12px; border: 2px solid #dde2ee; border-radius: 12px; font-size: 14px; background: #fff; margin-bottom: 8px; }
     .count { font-size: 12px; color: #888; margin: 0 0 10px 4px; }
 
     /* リスト */
@@ -22,6 +26,9 @@
     .info { min-width: 0; }
     .date { font-size: 12px; color: #888; margin-bottom: 4px; }
     .type { display: inline-block; font-size: 11px; background: #7a8bb5; color: #fff; border-radius: 8px; padding: 2px 8px; margin-left: 6px; }
+    .type.ショート { background: #e08a9b; }
+    .type.配信 { background: #6aa88f; }
+    .game { display: inline-block; font-size: 11px; background: #eef1f7; color: #667; border-radius: 8px; padding: 2px 8px; margin-left: 4px; }
     a { color: #333; font-weight: bold; text-decoration: none; font-size: 14px; line-height: 1.4; }
     .more { display: block; width: 100%; padding: 12px; border: none; border-radius: 12px; background: #7a8bb5; color: #fff; font-size: 14px; margin-bottom: 24px; }
     .empty { text-align: center; color: #888; padding: 24px 0; }
@@ -46,6 +53,9 @@
   <h1>らっだぁ 動画投稿記録</h1>
 
   <input class="search" id="search" type="search" placeholder="タイトルで検索（例：OneShot）">
+
+  <div class="chips" id="chips"></div>
+  <select class="gamesel" id="gameSel"><option value="">ゲーム：すべて</option></select>
   <p class="count" id="count"></p>
 
   <div class="tabs">
@@ -68,26 +78,27 @@
   <script>
     let videos = [];
     let query = "";
+    let typeFilter = "";
+    let gameFilter = "";
     let view = "list";
-    let shown = 50; // リストで一度に表示する本数
+    let shown = 50;
     let cur = new Date();
     cur = new Date(cur.getFullYear(), cur.getMonth(), 1);
 
     function esc(s) {
       return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
-
-    // 全角/半角・大文字/小文字の違いを無視して比べる
     function norm(s) {
       return s.normalize("NFKC").toLowerCase();
     }
 
-    // 検索ワードに合う動画だけ返す（スペース区切りで AND 検索）
     function filtered() {
       const words = norm(query).split(/\s+/).filter(Boolean);
-      if (!words.length) return videos;
       return videos.filter(v => {
-        const text = norm(v.title + " " + v.date + " " + v.type);
+        if (typeFilter && v.type !== typeFilter) return false;
+        if (gameFilter && v.game !== gameFilter) return false;
+        if (!words.length) return true;
+        const text = norm(v.title + " " + v.date + " " + v.type + " " + (v.game || ""));
         return words.every(w => text.includes(w));
       });
     }
@@ -98,13 +109,14 @@
     }
 
     function cardHtml(v) {
+      const game = v.game ? `<span class="game">${esc(v.game)}</span>` : "";
       return `
         <div class="card">
           <a href="${esc(v.url)}" target="_blank">
             <img class="thumb" src="${thumbUrl(v.url)}" loading="lazy" alt="" onerror="this.style.visibility='hidden'">
           </a>
           <div class="info">
-            <div class="date">${esc(v.date)}<span class="type">${esc(v.type)}</span></div>
+            <div class="date">${esc(v.date)}<span class="type ${esc(v.type)}">${esc(v.type)}</span>${game}</div>
             <a href="${esc(v.url)}" target="_blank">${esc(v.title)}</a>
           </div>
         </div>`;
@@ -140,7 +152,6 @@
         (byDay[d] = byDay[d] || []).push(v);
       });
 
-      // 月曜始まり
       const first = (new Date(y, m, 1).getDay() + 6) % 7;
       const days = new Date(y, m + 1, 0).getDate();
       let html = ["月","火","水","木","金","土","日"].map(d => `<div class="dow">${d}</div>`).join("");
@@ -164,8 +175,30 @@
 
     function updateCount() {
       const n = filtered().length;
+      const active = query.trim() || typeFilter || gameFilter;
       document.getElementById("count").textContent =
-        query.trim() ? `${n}件ヒット（全${videos.length}本）` : `全${videos.length}本`;
+        active ? `${n}件ヒット（全${videos.length}本）` : `全${videos.length}本`;
+    }
+
+    function renderChips() {
+      const types = ["", "動画", "ショート", "配信"];
+      const box = document.getElementById("chips");
+      box.innerHTML = types.map(t =>
+        `<button class="chip ${typeFilter === t ? "active" : ""}" data-t="${t}">${t || "すべて"}</button>`
+      ).join("");
+      box.querySelectorAll(".chip").forEach(b => {
+        b.onclick = () => { typeFilter = b.dataset.t; shown = 50; renderChips(); render(); };
+      });
+    }
+
+    function buildGameSelect() {
+      const counts = {};
+      videos.forEach(v => { if (v.game) counts[v.game] = (counts[v.game] || 0) + 1; });
+      const names = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+      const sel = document.getElementById("gameSel");
+      sel.innerHTML = '<option value="">ゲーム：すべて</option>' +
+        names.map(n => `<option value="${esc(n)}">${esc(n)}（${counts[n]}）</option>`).join("");
+      sel.onchange = () => { gameFilter = sel.value; shown = 50; render(); };
     }
 
     function render() {
@@ -196,6 +229,8 @@
       .then(res => res.json())
       .then(data => {
         videos = data.sort((a, b) => b.date.localeCompare(a.date));
+        renderChips();
+        buildGameSelect();
         render();
       })
       .catch(() => {
